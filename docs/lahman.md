@@ -1,15 +1,21 @@
 # Lahman Data Acquisition Functions
 
-Pull data from [Sean Lahman's database](http://www.seanlahman.com/baseball-archive/statistics/), also hosted by [Chadwick Bureau on GitHub](https://github.com/chadwickbureau/baseballdatabank) -- our new source -- using the following functions:
+Pull data from [Sean Lahman's database](http://www.seanlahman.com/baseball-archive/statistics/), now maintained by [SABR (Society for American Baseball Research)](https://sabr.org/lahman-database/).
+
+> **Note**: The original GitHub source (`chadwickbureau/baseballdatabank`) is no longer available. You must manually download the database from SABR's website and extract it to your pybaseball cache directory.
+
+## Setup
+
+1. Visit [https://sabr.org/lahman-database/](https://sabr.org/lahman-database/)
+2. Download the **Comma-delimited version** (zip file)
+3. Extract the contents to your pybaseball cache directory (typically `~/.pybaseball/cache/`)
+
+After extraction, you should have a folder like `lahman_2025` containing a `core/` subdirectory.
+
+## Usage
 
 ```python
 from pybaseball.lahman import *
-download_lahman() #download the entire lahman database to your current working directory
-
-# a table of all player biographical info and ids
-people = people()
-# or you can use
-master = master()
 
 # park id, name, alias, city, state, and country
 parks = parks()

@@ -1,11 +1,9 @@
 import logging
-from io import BytesIO
 from os import path
 from typing import Optional
 from zipfile import ZipFile
 
 import pandas as pd
-import requests
 
 from . import cache
 
@@ -35,14 +33,14 @@ _base_dir: Optional[str] = None
 def _find_lahman_directory() -> Optional[str]:
     """
     Search for the Lahman database directory in the cache.
-    
+
     The SABR zip file extracts to different folder names (e.g., "lahman_2025"),
     so we need to search for common patterns.
     """
     import glob
-    
+
     cache_dir = cache.config.cache_directory
-    
+
     for pattern in EXPECTED_DIR_PATTERNS:
         matches = glob.glob(path.join(cache_dir, pattern))
         for match in matches:
@@ -56,27 +54,27 @@ def _find_lahman_directory() -> Optional[str]:
                 people_csv = path.join(match, 'People.csv')
                 if path.isfile(people_csv):
                     return match
-    
+
     return None
 
 
 def get_lahman_zip() -> Optional[ZipFile]:
     """
     Get the Lahman database ZipFile handle, if available.
-    
+
     Note: Since the original GitHub source is no longer available,
     this function will raise an error directing users to manually
     download from SABR.
     """
     global _handle, _base_dir
-    
+
     # First check if we have locally extracted files
     local_dir = _find_lahman_directory()
     if local_dir:
         _base_dir = local_dir
         _handle = None
         return None
-    
+
     # If no local directory found, raise informative error
     raise RuntimeError(
         f"Lahman database not found in cache directory: {cache.config.cache_directory}\n\n"
@@ -92,7 +90,7 @@ def get_lahman_zip() -> Optional[ZipFile]:
 def download_lahman() -> None:
     """
     Download the Lahman database.
-    
+
     Note: Automatic download is no longer supported because SABR uses Box.com
     which requires JavaScript/browser interaction. This function now provides
     instructions for manual download.
@@ -112,37 +110,37 @@ def download_lahman() -> None:
 def _get_file(tablename: str, quotechar: str = "'") -> pd.DataFrame:
     """
     Load a CSV file from the Lahman database.
-    
+
     Args:
         tablename: Path to the CSV file within the Lahman directory (e.g., 'core/People.csv')
         quotechar: Quote character used in the CSV file
-        
+
     Returns:
         DataFrame containing the CSV data
     """
     global _base_dir
-    
+
     # Ensure we have a directory to read from
     if _base_dir is None:
         get_lahman_zip()  # This will set _base_dir or raise an error
-    
+
     if _base_dir is None:
         raise RuntimeError("Lahman database directory not found")
-    
+
     file_path = path.join(_base_dir, tablename)
-    
+
     # Handle case where SABR might use different directory structure
     if not path.exists(file_path):
         # Try without subdirectory (some versions have flat structure)
         basename = path.basename(tablename)
         file_path = path.join(_base_dir, basename)
-    
+
     if not path.exists(file_path):
         raise FileNotFoundError(
             f"Could not find {tablename} in Lahman database at {_base_dir}\n"
             f"Expected path: {path.join(_base_dir, tablename)}"
         )
-    
+
     return pd.read_csv(
         file_path,
         header=0,

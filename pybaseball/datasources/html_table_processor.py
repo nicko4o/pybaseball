@@ -3,7 +3,6 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import lxml.etree
 import pandas as pd
-import requests
 
 from ..datahelpers import postprocessing
 from ..datahelpers.column_mapper import ColumnListMapperFunction
@@ -70,10 +69,10 @@ class HTMLTableProcessor:
                                       row_id_name: Optional[str] = None) -> pd.DataFrame:
         import logging
         from curl_cffi import requests as cffi_requests
-        
+
         logger = logging.getLogger('pybaseball')
         full_url = self.root_url + url
-        
+
         try:
             # Use curl_cffi with browser impersonation to avoid 403 errors
             # FanGraphs and other sites block requests that don't look like real browsers
@@ -87,7 +86,7 @@ class HTMLTableProcessor:
         except cffi_requests.exceptions.RequestException as e:
             logger.error(f"Request failed for {full_url}: {e}")
             raise
-        
+
         if response.status_code > 399:
             raise cffi_requests.exceptions.HTTPError(
                 f"Error accessing '{full_url}'. Received status code {response.status_code}"

@@ -115,18 +115,18 @@ def events(season: int, type: str = 'regular', export_dir: str = '.') -> None:
 
     Right now, pybaseball does not parse the retrosheet files but downloads and
     saves them.
-    
+
     Note: This function requires GitHub API access. Without a GH_TOKEN, you are
     limited to 60 requests per hour. Set the GH_TOKEN environment variable for
     higher rate limits.
     """
     import logging
     logger = logging.getLogger('pybaseball')
-    
+
     GH_TOKEN = os.getenv('GH_TOKEN', '')
     if not os.path.exists(export_dir):
         os.mkdir(export_dir)
-    
+
     if type == 'regular':
         file_extension = ('.EVA', '.EVN')
     elif type == 'post':
@@ -159,43 +159,58 @@ def events(season: int, type: str = 'regular', export_dir: str = '.') -> None:
         with open(os.path.join(export_dir, filename), 'w') as f:
             f.write(s)
 
-def rosters(season):
+def rosters(season: int) -> pd.DataFrame:
     """
-    Pulls retrosheet roster files for an entire season
+    Pulls retrosheet roster files for an entire season.
+
+    Args:
+        season: The year of the season to get rosters for.
+
+    Returns:
+        DataFrame containing all player rosters for the given season.
     """
-    GH_TOKEN=os.getenv('GH_TOKEN', '')
+    GH_TOKEN = os.getenv('GH_TOKEN', '')
 
     try:
-        g = Github(GH_TOKEN)
+        g = Github(GH_TOKEN) if GH_TOKEN else Github()
         repo = g.get_repo('chadwickbureau/retrosheet')
         season_folder = [f.path[f.path.rfind('/')+1:] for f in repo.get_contents(f'seasons/{season}')]
-        rosters = [t for t in season_folder if t.endswith('.ROS')]
-        if len(rosters) == 0:
+        roster_files = [t for t in season_folder if t.endswith('.ROS')]
+        if len(roster_files) == 0:
             raise ValueError(f'Rosters not available for {season}')
     except RateLimitExceededException:
         warnings.warn(
             'Github rate limit exceeded. Cannot check if the file you want exists.',
             UserWarning
         )
+        raise
 
-    df_list = [_roster(team = r[:3], season = season, checked=False) for r in rosters]
+    df_list = [_roster(team=r[:3], season=season, checked=True) for r in roster_files]
 
     return pd.concat(df_list)
 
-def _roster(team, season, checked = False):
+def _roster(team: str, season: int, checked: bool = False) -> pd.DataFrame:
     """
-    Pulls retrosheet roster files
+    Pulls retrosheet roster files for a specific team.
+
+    Args:
+        team: Three-letter team abbreviation.
+        season: The year of the season.
+        checked: If True, skip file existence check.
+
+    Returns:
+        DataFrame containing the team's roster.
     """
-    GH_TOKEN=os.getenv('GH_TOKEN', '')
+    GH_TOKEN = os.getenv('GH_TOKEN', '')
 
     if not checked:
-        g = Github(GH_TOKEN)
+        g = Github(GH_TOKEN) if GH_TOKEN else Github()
         try:
             repo = g.get_repo('chadwickbureau/retrosheet')
             season_folder = [f.path[f.path.rfind('/')+1:] for f in repo.get_contents(f'seasons/{season}')]
-            rosters = [t for t in season_folder if t.endswith('.ROS')]
+            roster_files = [t for t in season_folder if t.endswith('.ROS')]
             file_name = f'{team}{season}.ROS'
-            if file_name not in rosters:
+            if file_name not in roster_files:
                 raise ValueError(f'Roster not available for {team} in {season}')
         except RateLimitExceededException:
             warnings.warn(
@@ -227,7 +242,7 @@ def schedules(season):
     repo = g.get_repo('chadwickbureau/retrosheet')
     season_folder = [f.path[f.path.rfind('/')+1:] for f in repo.get_contents(f'seasons/{season}')]
     file_name = f'{season}schedule.csv'
-    
+
     if file_name not in season_folder:
         raise ValueError(f'Schedule not available for {season}')
     s = get_text_file(schedule_url.format(season, season))
