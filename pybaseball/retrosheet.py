@@ -107,7 +107,7 @@ parkid_url = 'https://raw.githubusercontent.com/chadwickbureau/retrosheet/master
 roster_url = 'https://raw.githubusercontent.com/chadwickbureau/retrosheet/master/seasons/{}/{}{}.ROS'
 event_url = 'https://raw.githubusercontent.com/chadwickbureau/retrosheet/master/seasons/{}/{}'
 
-def events(season, type='regular', export_dir='.'):
+def events(season: int, type: str = 'regular', export_dir: str = '.') -> None:
     """
     Pulls retrosheet event files for an entire season. The `type` argument
     specifies whether to pull regular season, postseason or asg files. Valid
@@ -115,23 +115,31 @@ def events(season, type='regular', export_dir='.'):
 
     Right now, pybaseball does not parse the retrosheet files but downloads and
     saves them.
+    
+    Note: This function requires GitHub API access. Without a GH_TOKEN, you are
+    limited to 60 requests per hour. Set the GH_TOKEN environment variable for
+    higher rate limits.
     """
-    GH_TOKEN=os.getenv('GH_TOKEN', '')
+    import logging
+    logger = logging.getLogger('pybaseball')
+    
+    GH_TOKEN = os.getenv('GH_TOKEN', '')
     if not os.path.exists(export_dir):
         os.mkdir(export_dir)
     
     if type == 'regular':
-        file_extension = ('.EVA','.EVN')
+        file_extension = ('.EVA', '.EVN')
     elif type == 'post':
-        file_extension = ('CS.EVE','D1.EVE','D2.EVE','W1.EVE','W2.EVE','WS.EVE')
+        file_extension = ('CS.EVE', 'D1.EVE', 'D2.EVE', 'W1.EVE', 'W2.EVE', 'WS.EVE')
     elif type == 'asg':
-        file_extension = ('AS.EVE')
+        file_extension = ('AS.EVE',)  # Fixed: should be tuple, not string
     else:
         raise RuntimeError(f"Illegal type argument {type}, "
                            "the valid types are: 'regular', 'post', and 'asg'.")
 
+    season_events = []
     try:
-        g = Github(GH_TOKEN)
+        g = Github(GH_TOKEN) if GH_TOKEN else Github()
         repo = g.get_repo('chadwickbureau/retrosheet')
         season_folder = [f.path[f.path.rfind('/')+1:] for f in repo.get_contents(f'seasons/{season}')]
         season_events = [t for t in season_folder if t.endswith(file_extension)]
@@ -139,12 +147,14 @@ def events(season, type='regular', export_dir='.'):
             raise ValueError(f'Event files not available for {season}')
     except RateLimitExceededException:
         warnings.warn(
-            'Github rate limit exceeded. Cannot check if the file you want exists.',
+            'Github rate limit exceeded. Cannot check if the file you want exists. '
+            'Consider setting the GH_TOKEN environment variable for higher rate limits.',
             UserWarning
         )
+        raise
 
     for filename in season_events:
-        print(f'Downloading {filename}')
+        logger.info(f'Downloading {filename}')
         s = get_text_file(event_url.format(season, filename))
         with open(os.path.join(export_dir, filename), 'w') as f:
             f.write(s)

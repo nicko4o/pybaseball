@@ -1,10 +1,13 @@
 import datetime
+import logging
 from time import sleep
 from typing import Any, Optional
 
 from curl_cffi import requests
 
 from ..datahelpers import singleton
+
+logger = logging.getLogger('pybaseball')
 
 
 class BRefSession(singleton.Singleton):
@@ -35,7 +38,7 @@ class BRefSession(singleton.Singleton):
             resp.raise_for_status()
             return resp
         except requests.exceptions.RequestException as e:
-            print(f"Error: {e}")
+            logger.error(f"BRef request failed for {url}: {e}")
+            raise
 
-        return -1
                 

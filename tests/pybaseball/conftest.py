@@ -153,7 +153,8 @@ def get_data_file_dataframe(data_dir: str) -> GetDataFrameCallable:
 @pytest.fixture()
 def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
     """
-        Returns a function that will monkeypatch the requests.get function call to return expected data 
+        Returns a function that will monkeypatch both requests.get and curl_cffi.requests.get 
+        function calls to return expected data 
     """
     def setup(result: Union[str, bytes], expected_url: Optional[str] = None) -> None:
         """
@@ -165,7 +166,8 @@ def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
             expected_url    : str (optional) : an expected_url to test the get call against
                                                to ensure the correct endpoint is hit
         """
-        def _monkeypatch(url: str, params: Optional[Dict] = None, timeout: Optional[int] = None) -> object:
+        def _monkeypatch(url: str, params: Optional[Dict] = None, timeout: Optional[int] = None, 
+                         impersonate: Optional[str] = None, **kwargs) -> object:
             final_url = url
 
             if params:
@@ -185,10 +187,21 @@ def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
                     self.text = content
                     self.status_code = 200
                     self.url = final_url
+                
+                def raise_for_status(self) -> None:
+                    pass
 
             return DummyResponse(result)
 
+        # Patch both standard requests and curl_cffi requests
         monkeypatch.setattr(requests, 'get', _monkeypatch)
+        
+        # Also patch curl_cffi.requests.get for the new browser impersonation code
+        try:
+            from curl_cffi import requests as cffi_requests
+            monkeypatch.setattr(cffi_requests, 'get', _monkeypatch)
+        except ImportError:
+            pass
 
     return setup
 

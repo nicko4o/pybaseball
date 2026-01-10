@@ -68,11 +68,29 @@ class HTMLTableProcessor:
                                   column_name_mapper: ColumnListMapperFunction = None,
                                   known_percentages: Optional[List[str]] = None, row_id_func: RowIdFunction = None,
                                       row_id_name: Optional[str] = None) -> pd.DataFrame:
-        response = requests.get(self.root_url + url, params=query_params)
-
+        import logging
+        from curl_cffi import requests as cffi_requests
+        
+        logger = logging.getLogger('pybaseball')
+        full_url = self.root_url + url
+        
+        try:
+            # Use curl_cffi with browser impersonation to avoid 403 errors
+            # FanGraphs and other sites block requests that don't look like real browsers
+            response = cffi_requests.get(
+                full_url,
+                params=query_params,
+                impersonate="chrome",
+                timeout=30
+            )
+            response.raise_for_status()
+        except cffi_requests.exceptions.RequestException as e:
+            logger.error(f"Request failed for {full_url}: {e}")
+            raise
+        
         if response.status_code > 399:
-            raise requests.exceptions.HTTPError(
-                f"Error accessing '{self.root_url + url}'. Received status code {response.status_code}"
+            raise cffi_requests.exceptions.HTTPError(
+                f"Error accessing '{full_url}'. Received status code {response.status_code}"
             )
 
         return self.get_tabular_data_from_html(
