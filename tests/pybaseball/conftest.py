@@ -10,6 +10,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from typing_extensions import Protocol
 
 from pybaseball.datasources.bref import BRefSession
+from pybaseball.network import requests_client
 
 _ParseDates = Union[bool, List[int], List[str], List[List], Dict]
 
@@ -31,7 +32,7 @@ class GetDataFrameCallable(Protocol):
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_delete(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.delete', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.delete', after=thrower))
     monkeypatch.setattr(requests, 'delete', mock)
     return mock
 
@@ -39,7 +40,7 @@ def _requests_prevent_delete(monkeypatch: MonkeyPatch, thrower: Callable, loggin
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_get(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.get', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.get', after=thrower))
     monkeypatch.setattr(requests, 'get', mock)
     return mock
 
@@ -47,7 +48,7 @@ def _requests_prevent_get(monkeypatch: MonkeyPatch, thrower: Callable, logging_s
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_head(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.head', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.head', after=thrower))
     monkeypatch.setattr(requests, 'head', mock)
     return mock
 
@@ -55,7 +56,7 @@ def _requests_prevent_head(monkeypatch: MonkeyPatch, thrower: Callable, logging_
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_options(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.options', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.options', after=thrower))
     monkeypatch.setattr(requests, 'options', mock)
     return mock
 
@@ -63,7 +64,7 @@ def _requests_prevent_options(monkeypatch: MonkeyPatch, thrower: Callable, loggi
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_patch(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.patch', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.patch', after=thrower))
     monkeypatch.setattr(requests, 'patch', mock)
     return mock
 
@@ -71,7 +72,7 @@ def _requests_prevent_patch(monkeypatch: MonkeyPatch, thrower: Callable, logging
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_put(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.put', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.put', after=thrower))
     monkeypatch.setattr(requests, 'put', mock)
     return mock
 
@@ -79,7 +80,7 @@ def _requests_prevent_put(monkeypatch: MonkeyPatch, thrower: Callable, logging_s
 # Autouse to prevent integration tests sneaking into the unit tests
 @pytest.fixture(autouse=True)
 def _requests_prevent_post(monkeypatch: MonkeyPatch, thrower: Callable, logging_side_effect: Callable) -> MagicMock:
-    mock = MagicMock(side_effect=logging_side_effect(f'requests.post', after=thrower))
+    mock = MagicMock(side_effect=logging_side_effect('requests.post', after=thrower))
     monkeypatch.setattr(requests, 'post', mock)
     return mock
 
@@ -153,7 +154,7 @@ def get_data_file_dataframe(data_dir: str) -> GetDataFrameCallable:
 @pytest.fixture()
 def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
     """
-        Returns a function that will monkeypatch the requests.get function call to return expected data 
+    Returns a function that will monkeypatch the requests.get function call to return expected data
     """
     def setup(result: Union[str, bytes], expected_url: Optional[str] = None) -> None:
         """
@@ -165,7 +166,12 @@ def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
             expected_url    : str (optional) : an expected_url to test the get call against
                                                to ensure the correct endpoint is hit
         """
-        def _monkeypatch(url: str, params: Optional[Dict] = None, timeout: Optional[int] = None) -> object:
+        def _monkeypatch(
+            url: str,
+            params: Optional[Dict] = None,
+            headers: Optional[Dict] = None,
+            timeout: Optional[int] = None,
+        ) -> object:
             final_url = url
 
             if params:
@@ -186,16 +192,20 @@ def response_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
                     self.status_code = 200
                     self.url = final_url
 
+                def raise_for_status(self) -> None:
+                    return None
+
             return DummyResponse(result)
 
         monkeypatch.setattr(requests, 'get', _monkeypatch)
+        monkeypatch.setattr(requests_client.session, 'get', _monkeypatch)
 
     return setup
 
 @pytest.fixture()
 def bref_get_monkeypatch(monkeypatch: MonkeyPatch) -> Callable:
     """
-        Returns a function that will monkeypatch the BRefSession.get function call to return expected data 
+    Returns a function that will monkeypatch the BRefSession.get function call to return expected data
     """
     def setup(result: Union[str, bytes], expected_url: Optional[str] = None) -> None:
         """

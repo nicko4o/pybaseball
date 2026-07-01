@@ -7,17 +7,20 @@ import requests
 
 from ..datahelpers import postprocessing
 from ..datahelpers.column_mapper import ColumnListMapperFunction
+from ..network import HttpClient, requests_client
 
 RowIdFunction = Optional[Callable[[Any, lxml.etree.Element], Optional[Union[int, str]]]]
 
+
 class HTMLTableProcessor:
     def __init__(self, root_url: str, headings_xpath: str, data_rows_xpath: str, data_cell_xpath: str,
-                 table_class: str = None):
+                 table_class: str = None, client: Optional[HttpClient] = None):
         self.root_url = root_url
         self.table_class = table_class
         self.headings_xpath = headings_xpath.format(TABLE_XPATH=self.table_xpath)
         self.data_rows_xpath = data_rows_xpath.format(TABLE_XPATH=self.table_xpath)
         self.data_cell_xpath = data_cell_xpath
+        self.client = client or requests_client
 
     @property
     def table_xpath(self) -> str:
@@ -68,12 +71,7 @@ class HTMLTableProcessor:
                                   column_name_mapper: ColumnListMapperFunction = None,
                                   known_percentages: Optional[List[str]] = None, row_id_func: RowIdFunction = None,
                                       row_id_name: Optional[str] = None) -> pd.DataFrame:
-        response = requests.get(self.root_url + url, params=query_params)
-
-        if response.status_code > 399:
-            raise requests.exceptions.HTTPError(
-                f"Error accessing '{self.root_url + url}'. Received status code {response.status_code}"
-            )
+        response = self.client.get(self.root_url + url, params=query_params)
 
         return self.get_tabular_data_from_html(
             response.content,
@@ -95,3 +93,4 @@ class HTMLTableProcessor:
             row_id_func=row_id_func,
             row_id_name=row_id_name,
         )
+
