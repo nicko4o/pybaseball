@@ -1,13 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pybaseball"
+dynamic = ["version"]
+description = "Retrieve baseball data in Python"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "James LeDoux", email = "ledoux.james.r@gmail.com"}
+]
+maintainers = [
+    {name = "Moshe Schorr"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+keywords = ["baseball", "sabermetrics", "data", "statistics", "statcast", "web scraping"]
+dependencies = [
+    "numpy>=1.13.0",
+    "pandas>=1.0.3",
+    "beautifulsoup4>=4.4.0",
+    "requests>=2.18.1",
+    "lxml>=4.2.1",
+    "pyarrow>=1.0.1",
+    "pygithub>=1.51",
+    "scipy>=1.4.0",
+    "matplotlib>=2.0.0",
+    "tqdm>=4.50.0",
+    "attrs>=20.3.0",
+    "curl_cffi>=0.10.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0.2",
+    "mypy>=0.782",
+    "pytest-cov>=2.10.1",
+    "pytest-xdist>=2.1.0",
+    "types-requests>=2.18.1",
+    "ruff>=0.1.0",
+    "types-tqdm",
+    "lxml-stubs",
+    "types-setuptools",
+]
+
+[project.urls]
+Homepage = "https://github.com/jldbc/pybaseball"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "tests.*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pybaseball.version.__version__"}
+
 [tool.autopep8]
 max_line_length = 120
-ignore=["E265"]
+ignore = ["E265"]
 
 [tool.pylint.pep8]
 'max-line-length' = 120
 
 [tool.pylint.BASIC]
-# Good variable names which should always be accepted, separated by a comma.
-good-names=["i", "j", "k", "ex", "_", "df"]
+good-names = ["i", "j", "k", "ex", "_", "df"]
 
 [tool.pylint.'MESSAGES CONTROL']
 disable = [
